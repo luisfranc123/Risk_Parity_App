@@ -1,6 +1,6 @@
 # Risk Parity Portfolio Analyzer
 
-A Streamlit app that replicates and extends the Portfolio Visualizer PDF report,
+A Streamlit app that replicates a Portfolio Analyzer employing Risk Parity Strategy,
 running a full walk-forward backtest of three portfolios vs. a benchmark.
 
 ## Portfolios
@@ -12,14 +12,14 @@ running a full walk-forward backtest of three portfolios vs. a benchmark.
 | **Benchmark** | State Street Global Allocation ETF (GAL) |
 
 ## Features
-- 📈 Portfolio growth, annual returns, trailing returns
-- ⚖️ 28 risk/return metrics (Sharpe, Sortino, VaR, capture ratios, etc.)
-- 🗂 Holdings viewer, risk-parity optimiser, correlation matrix
-- 📅 Monthly return heatmaps per portfolio
-- 🔬 Per-asset stats, normalised price chart, return decomposition
-- 🔄 Monthly or quarterly rebalancing
-- 💰 Custom initial investment amount
-- 📐 Customisable tickers & weights for Aspect Partners portfolio
+- Portfolio growth, annual returns, trailing returns
+- 28 risk/return metrics (Sharpe, Sortino, VaR, capture ratios, etc.)
+- Holdings viewer, risk-parity optimiser, correlation matrix
+- Monthly return heatmaps per portfolio
+- Per-asset stats, normalised price chart, return decomposition
+- Monthly or quarterly rebalancing
+- Custom initial investment amount
+- Customisable tickers & weights for Aspect Partners portfolio
 
 ## Setup
 
@@ -50,7 +50,7 @@ Mutual fund tickers (ASFYX, APDFX, QMHIX, GQGIX) use forward-fill
 for days with no price update, consistent with NAV reporting.
 
 ## Notes
-- The walk-forward backtest re-optimises weights at each rebalance period
+- The walk-forward backtest re-optimizes weights at each rebalance period
   using historical covariance up to that date (no look-ahead bias).
 - Dividends are embedded in Yahoo Finance's adjusted prices (`auto_adjust=True`).
 - Benchmark for all metrics: State Street Global Allocation ETF (GAL).
