@@ -9,7 +9,6 @@ Replicates the Portfolio Visualizer report from the PDF with:
 """
 
 import sys, os
-import matplotlib
 sys.path.insert(0, os.path.dirname(__file__))
 
 import streamlit as st
