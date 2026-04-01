@@ -180,7 +180,19 @@ if run:
         prices = fetch_prices(all_tix, str(start_date), str(end_date),
                               reinvest_dividends=reinvest_divs)
     if prices.empty:
-        st.error("No data returned. Check tickers / dates."); st.stop()
+        st.error("No data returned. Check tickers/dates.") 
+        st.stop()
+    
+    # Warn about any tickers that failed silently
+    failed = [t for t in all_tix if t not in prices.columns
+          or prices[t].isna().all()]
+    if failed:
+        st.warning(
+            f"Could not retrieve data for: {', '.join(failed)}. "
+            f"These tickers have been excluded from the analysis. "
+            f"This is common for mutual funds (ASFYX, APDFX, QMHIX, GQGIX) "
+            f"on cloud deployments due to Yahoo Finance rate limits."
+        )
 
     with st.spinner("Running backtests…"):
         def run_bt(tickers, weights, rp=True):
@@ -225,12 +237,12 @@ if st.session_state.results is None:
     st.info("Configure the settings in the sidebar and click **▶ Run Analysis**.")
     st.stop()
 
-R      = st.session_state.results
-bt     = R["bt"]; mets = R["mets"]
+R = st.session_state.results
+bt = R["bt"]; mets = R["mets"]
 prices = R["prices"]; iv = R["iv"]
 
-bmap   = {labels[k]: (bt[k],  colors[k]) for k in ["ap","lv","lb","bench"]}
-mmap   = {labels[k]: (mets[k],colors[k]) for k in ["ap","lv","lb","bench"]}
+bmap = {labels[k]: (bt[k],  colors[k]) for k in ["ap","lv","lb","bench"]}
+mmap = {labels[k]: (mets[k],colors[k]) for k in ["ap","lv","lb","bench"]}
 
 
 # TABS
@@ -463,9 +475,8 @@ with t4:
                 return ""
 
 st.dataframe(
-    df_m.style.format("{:.2f}%").applymap(color_returns),
+    df_m.style.format("{:.2f}%").map(color_returns),
     use_container_width=True)
-
 
 
 # TAB 5 — COMPONENTS

@@ -58,20 +58,49 @@ def fetch_prices(tickers: list, start: str, end: str,
     reinvest_dividends = True  → auto_adjust = True (adjusted / total-return prices)
     reinvest_dividends = False → auto_adjust = False (unadjusted / price-return only)
     """
+    import time
     all_tickers = list(set(tickers))
-    raw = yf.download(
-        all_tickers, start=start, end=end,
-        auto_adjust=reinvest_dividends,
-        progress=False,
-    )
+   
+    # Try fetching all at once first
+    for attempt in range(3):
+        try:
+            raw = yf.download(
+                all_tickers, start=start, end=end,
+                auto_adjust=reinvest_dividends,
+                progress=False, timeout=30,
+            )
+            if not raw.empty:
+                break
+        except Exception:
+            time.sleep(2)
+    
     if isinstance(raw.columns, pd.MultiIndex):
         prices = raw["Close"]
     else:
         prices = raw[["Close"]] if "Close" in raw.columns else raw
-    prices = prices.dropna(how="all")
-    prices = prices.ffill(limit=5)
-    return prices
 
+    # For any ticker that came back empty, retry individually
+    missing = [t for t in all_tickers if t not in prices.columns
+               or prices[t].isna().all()]
+    for t in missing:
+        for attempt in range(3):
+            try:
+                single = yf.download(
+                    t, start=start, end=end,
+                    auto_adjust=reinvest_dividends,
+                    progress=False, timeout=30,
+                )
+                if not single.empty:
+                    col = single["Close"] if "Close" in single.columns \
+                          else single.iloc[:, 0]
+                    prices[t] = col
+                    break
+            except Exception:
+                time.sleep(2)
+
+    prices = prices.dropna(how="all").ffill(limit=5)
+    return prices
+   
 
 def get_returns(prices: pd.DataFrame) -> pd.DataFrame:
     return prices.pct_change().dropna()
