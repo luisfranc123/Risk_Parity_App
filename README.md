@@ -31,6 +31,12 @@ streamlit run app.py
 ## Project Structure
 ```
 risk_parity_app/
+└── data/
+    └── cache/
+        ├── ASFYX.csv
+        ├── APDFX.csv
+        ├── QMHIX.csv
+        └── GQGIX.csv
 ├── app.py                     # Main Streamlit app
 ├── requirements.txt
 ├── README.md
