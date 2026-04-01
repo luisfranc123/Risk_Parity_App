@@ -31,12 +31,6 @@ streamlit run app.py
 ## Project Structure
 ```
 risk_parity_app/
-└── data/
-    └── cache/
-        ├── ASFYX.csv
-        ├── APDFX.csv
-        ├── QMHIX.csv
-        └── GQGIX.csv
 ├── app.py                     # Main Streamlit app
 ├── requirements.txt
 ├── README.md
@@ -48,6 +42,12 @@ risk_parity_app/
     ├── data_utils.py          # yfinance fetching + walk-forward backtest
     ├── performance_metrics.py # 33 performance metrics
     └── charts.py              # All Plotly visualisations
+└── data/
+    └── cache/
+        ├── ASFYX.csv
+        ├── APDFX.csv
+        ├── QMHIX.csv
+        └── GQGIX.csv
 ```
 
 ## Data Source
