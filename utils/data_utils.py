@@ -2,6 +2,7 @@ import yfinance as yf
 import pandas as pd
 import numpy as np
 import streamlit as st
+import os
 
 # Portfolio definitions 
 
@@ -60,41 +61,97 @@ def fetch_prices(tickers: list, start: str, end: str,
     """
     import time
     import requests
-    all_tickers = list(set(tickers))
-   
-    # Spoof a browser session so Yahoo Finance doesn't block cloud IPs
-    session = requests.Session()
-    session.headers.update({
-        "User-Agent": (
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-            "AppleWebKit/537.36 (KHTML, like Gecko) "
-            "Chrome/122.0.0.0 Safari/537.36"
-        ),
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-        "Accept-Language": "en-US,en;q=0.5",
-    })
+    from concurrent.futures import ThreadPoolExecutor, as_completed
 
+    all_tickers = list(set(tickers))
+    cache_dir = os.path.join(os.path.dirname(__file__), "..", "data", "cache")
+    start_dt = pd.Timestamp(start)
+    end_dt = pd.Timestamp(end)
+
+    # Phase 1: load hard tickers from CSV cache
     prices = pd.DataFrame()
+    live_tickers = []
 
     for t in all_tickers:
-        for attempt in range(4):
+        cache_path = os.path.join(cache_dir, f"{t}.csv")
+        if os.path.exists(cache_path):
             try:
-                ticker_obj = yf.Ticker(t, session=session)
-                hist = ticker_obj.history(
+                df = pd.read_csv(cache_path, index_col=0, parse_dates=True)
+                df.index = df.index.tz_localize(None)
+                series = df["Close"].loc[start_dt:end_dt]
+                if not series.empty:
+                    prices[t] = series
+                    continue
+            except Exception:
+                pass
+        live_tickers.append(t)
+
+    # Phase 2: fetch remaining tickers live from yfinance 
+    if not live_tickers:
+        prices = prices.sort_index().dropna(how="all").ffill(limit=5)
+        return prices
+
+    def make_session():
+        s = requests.Session()
+        s.headers.update({
+            "User-Agent": (
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) "
+                "Chrome/122.0.0.0 Safari/537.36"
+            ),
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            "Accept-Language": "en-US,en;q=0.5",
+        })
+        return s
+
+    def fetch_one(ticker):
+        for attempt in range(3):
+            try:
+                hist = yf.Ticker(ticker, session=make_session()).history(
                     start=start, end=end,
                     auto_adjust=reinvest_dividends,
                     timeout=20,
                 )
                 if not hist.empty and "Close" in hist.columns:
-                    prices[t] = hist["Close"]
-                    break
+                    s = hist["Close"].copy()
+                    s.index = s.index.tz_localize(None)
+                    return ticker, s
             except Exception:
-                time.sleep(1.5 * (attempt + 1))  # exponential back-off
+                time.sleep(1.0 * (attempt + 1))
+        return ticker, None
 
-    if prices.empty:
-        return prices
+    # Try bulk download first for live tickers — fastest path
+    try:
+        raw = yf.download(
+            live_tickers, start=start, end=end,
+            auto_adjust=reinvest_dividends,
+            progress=False, timeout=20,
+        )
+        if not raw.empty:
+            bulk = raw["Close"] if isinstance(raw.columns, pd.MultiIndex) else raw
+            bulk.index = bulk.index.tz_localize(None) if bulk.index.tz else bulk.index
+            for t in live_tickers:
+                if t in bulk.columns and not bulk[t].isna().all():
+                    prices[t] = bulk[t]
 
-    prices = prices.dropna(how="all").ffill(limit=5)
+            # Check which ones still missing after bulk
+            still_missing = [t for t in live_tickers
+                             if t not in prices.columns or prices[t].isna().all()]
+        else:
+            still_missing = live_tickers
+    except Exception:
+        still_missing = live_tickers
+
+    # Parallel individual fetch for anything bulk missed
+    if still_missing:
+        with ThreadPoolExecutor(max_workers=6) as executor:
+            futures = {executor.submit(fetch_one, t): t for t in still_missing}
+            for future in as_completed(futures):
+                ticker, series = future.result()
+                if series is not None:
+                    prices[ticker] = series
+
+    prices = prices.sort_index().dropna(how="all").ffill(limit=5)
     return prices
    
 
