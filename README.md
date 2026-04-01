@@ -1,6 +1,6 @@
 # Risk Parity Portfolio Analyzer
 
-A Streamlit app that replicates a Portfolio Analyzer employing Risk Parity Strategy,
+A Streamlit app that replicates a Portfolio Analyzer — developed by Arin Risk Advisors, LLC — employing Risk Parity Strategy,
 running a full walk-forward backtest of three portfolios vs. a benchmark.
 
 ## Portfolios
