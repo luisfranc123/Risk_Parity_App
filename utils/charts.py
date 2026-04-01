@@ -3,7 +3,6 @@ import plotly.express as px
 from plotly.subplots import make_subplots
 import pandas as pd
 import numpy as np
-import matplotlib
 
 # Arin Risk Advisors brand palette
 arin_navy = "#0D2948"
