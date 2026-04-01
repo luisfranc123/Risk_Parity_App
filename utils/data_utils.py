@@ -59,44 +59,40 @@ def fetch_prices(tickers: list, start: str, end: str,
     reinvest_dividends = False → auto_adjust = False (unadjusted / price-return only)
     """
     import time
+    import requests
     all_tickers = list(set(tickers))
    
-    # Try fetching all at once first
-    for attempt in range(3):
-        try:
-            raw = yf.download(
-                all_tickers, start=start, end=end,
-                auto_adjust=reinvest_dividends,
-                progress=False, timeout=30,
-            )
-            if not raw.empty:
-                break
-        except Exception:
-            time.sleep(2)
-    
-    if isinstance(raw.columns, pd.MultiIndex):
-        prices = raw["Close"]
-    else:
-        prices = raw[["Close"]] if "Close" in raw.columns else raw
+    # Spoof a browser session so Yahoo Finance doesn't block cloud IPs
+    session = requests.Session()
+    session.headers.update({
+        "User-Agent": (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/122.0.0.0 Safari/537.36"
+        ),
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.5",
+    })
 
-    # For any ticker that came back empty, retry individually
-    missing = [t for t in all_tickers if t not in prices.columns
-               or prices[t].isna().all()]
-    for t in missing:
-        for attempt in range(3):
+    prices = pd.DataFrame()
+
+    for t in all_tickers:
+        for attempt in range(4):
             try:
-                single = yf.download(
-                    t, start=start, end=end,
+                ticker_obj = yf.Ticker(t, session=session)
+                hist = ticker_obj.history(
+                    start=start, end=end,
                     auto_adjust=reinvest_dividends,
-                    progress=False, timeout=30,
+                    timeout=20,
                 )
-                if not single.empty:
-                    col = single["Close"] if "Close" in single.columns \
-                          else single.iloc[:, 0]
-                    prices[t] = col
+                if not hist.empty and "Close" in hist.columns:
+                    prices[t] = hist["Close"]
                     break
             except Exception:
-                time.sleep(2)
+                time.sleep(1.5 * (attempt + 1))  # exponential back-off
+
+    if prices.empty:
+        return prices
 
     prices = prices.dropna(how="all").ffill(limit=5)
     return prices

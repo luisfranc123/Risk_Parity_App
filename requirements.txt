@@ -4,28 +4,31 @@
 # ============================================================
 
 # --- Core Scientific Computing ---
-pandas>=2.0.0
-numpy>=1.26.0
-scipy>=1.12.0
+pandas >= 2.0.0
+numpy >= 1.26.0
+scipy >= 1.12.0
 
 # --- Statistical Modeling ---
-statsmodels>=0.14.0
+statsmodels >= 0.14.0
 
 # --- Date Utilities ---
-python-dateutil>=2.9.0
+python-dateutil >= 2.9.0
 
 # --- Financial Data ---
-yfinance>=0.2.38
+yfinance >= 0.2.38
 
 # --- Portfolio & Risk Analysis ---
 # riskfolio-lib >= 6.0.0
 # riskparityportfolio >= 0.4.0
 
 # --- Visualization ---
-plotly>=5.20.0
+plotly >= 5.20.0
 
 # --- Deployment Features ---
 streamlit>=1.32.0
+
+# --- Data requirements (Streamlit app) ---
+requests >= 2.33.1
 
 # ============================================================
 # Standard Library (no installation required)
